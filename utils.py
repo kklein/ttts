@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 import pymc3 as pm
 
@@ -79,6 +80,50 @@ def compute_confidence(prior, n_mc_samples, candidates, candidate_filter,
             best_candidate = candidate
             max_confidence = confidence
     print_confidence_results(best_candidate, max_confidence, true_best)
+
+
+# All combinatorial possibilities to choose m fron {0, ..., N_ARMS-1}.
+def get_topm_candidates(n_arms, m):
+    return list(itertools.combinations(range(n_arms), m))
+
+
+def select_best_arm_from_theta(theta):
+    return np.argmax(theta)
+
+
+def select_best_arms_from_theta(theta, m):
+    return theta.argsort()[-m:][::-1]
+
+
+def are_set_equal(array_a, array_b):
+    return np.sum(np.in1d(array_a, array_b)) == len(array_a)
+
+
+def filter_samples_for_arm(samples, arm_index):
+    arm_filter = np.max(samples, axis=1) == samples[:, arm_index]
+    return samples[arm_filter, :]
+
+
+# Alternative implementation. Slower than vect for small M, should be faster
+# for large M.
+def filter_samples_for_arms(samples, arm_combination):
+    m = len(arm_combination)
+    arm_filter = np.apply_along_axis(
+        lambda x: are_set_equal(x, arm_combination), 1, samples.argsort(axis=1)[:, -m:])
+    return samples[arm_filter, :]
+
+# Given an _unordered_ arm combination, say {0, 4, 7}, check all samples
+# whether their top M arms (ordered) are equal to any of the ordered
+# permutations of the combinations, e.g. [4, 0, 7], [7, 4, 0] etc.
+def filter_samples_for_arms_vect(samples, arm_combination):
+    n_samples = samples.shape[0]
+    m = len(arm_combination)
+    arm_filter = np.zeros(n_samples)
+    best = samples.argsort(axis=1)[:, -m:]
+    for permutation in set(itertools.permutations(arm_combination)):
+        aux = np.prod(best == np.array(permutation), axis=1)
+        arm_filter += aux
+    return samples[arm_filter > 0, :]
 
 
 def print_sampling_results(prior, true_theta, arm_selection_counts):
