@@ -2,6 +2,22 @@ import itertools
 import numpy as np
 import pymc3 as pm
 
+
+class Parameter():
+    def __init__(self, n_steps, n_arms, n_mc_samples, m, confidence_level,
+                 seed, true_theta=None):
+        self.n_steps = n_steps
+        self.n_arms = n_arms
+        self.m = m
+        self.n_mc_samples = n_mc_samples
+        self.confidence_level = confidence_level
+        self.seed = seed
+        # Draw true theta.
+        if true_theta is None:
+            true_theta = np.random.uniform(0, 1, n_arms)
+        self.true_theta = true_theta
+
+
 class Prior():
     def __init__(self, n_arms):
         self.n_arms = n_arms
@@ -31,33 +47,31 @@ class Prior():
         return self.prior.beta
 
 
-def learn(seed, n_arms, n_steps, sampler, true_theta=None):
-    np.random.seed(seed)
+def learn(parameter, sampler, confidence_computer):
+    np.random.seed(parameter.seed)
     # Define priors per arm.
-    prior = Prior(n_arms)
-    arm_selection_counts = np.zeros(n_arms)
+    prior = Prior(parameter.n_arms)
+    arm_selection_counts = np.zeros(parameter.n_arms)
 
-    # Draw true theta.
-    if true_theta is None:
-        true_theta = np.random.uniform(0, 1, n_arms)
-
-    true_theta = np.array([.1, .2, .3, .4, .5])
-
-    for _ in range(n_steps):
+    for step_index in range(parameter.n_steps):
         selected_arm = sampler(prior)
         # Play option/arm.
-        reward = np.random.binomial(1, true_theta[selected_arm])
+        reward = np.random.binomial(1, parameter.true_theta[selected_arm])
         # Update priors.
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
-    print_sampling_results(prior, true_theta, arm_selection_counts)
+        if ((step_index % 10 == 0) and
+                confidence_computer(prior) >= parameter.confidence_level):
+            break
+
+    print_sampling_results(prior, parameter.true_theta, arm_selection_counts)
     return prior
 
 
 # Compute confidence via Monte Carlo integration.
 def compute_confidence(prior, n_mc_samples, candidates, candidate_filter,
-                       true_best):
+                       print_results, true_best):
 
     max_confidence = -100000
     best_candidate = -1
@@ -65,7 +79,6 @@ def compute_confidence(prior, n_mc_samples, candidates, candidate_filter,
     samples = np.random.uniform(0, 1, (n_mc_samples, prior.n_arms))
     for candidate in candidates:
         filtered_samples = candidate_filter(samples, candidate)
-        print(f"{filtered_samples.shape[0]} samples for candidate {candidate}.")
         if filtered_samples.shape[0] == 0:
             continue
         probabilities = prior.prior.logp(filtered_samples).eval()
@@ -74,12 +87,34 @@ def compute_confidence(prior, n_mc_samples, candidates, candidate_filter,
         # The density of theta is the product of the densities of each
         # theta_i.
         confidence = np.mean(np.prod(np.exp(probabilities), axis=1)) / len(candidates)
-
-        print(f"Arm combination {candidate}: confidence {confidence}")
+        if print_results:
+            print(f"""{candidate}: #samples:
+                  {filtered_samples.shape[0]}, confidence {confidence}""")
         if confidence > max_confidence:
             best_candidate = candidate
             max_confidence = confidence
-    print_confidence_results(best_candidate, max_confidence, true_best)
+    if print_results:
+        print_confidence_results(best_candidate, max_confidence, true_best)
+    return max_confidence
+
+
+def run_experiment(parameter, sampler):
+    if parameter.m == 1:
+        candidate_filter = filter_samples_for_arm
+        candidates = range(parameter.n_arms)
+        true_best = select_best_arm_from_theta(parameter.true_theta)
+    else:
+        candidate_filter = filter_samples_for_arms_vect
+        candidates = get_topm_candidates(parameter.n_arms, parameter.m)
+        true_best = select_best_arms_from_theta(parameter.true_theta,
+                                                parameter.m)
+    confidence_computer = lambda prior: compute_confidence(
+        prior, parameter.n_mc_samples, candidates,
+        candidate_filter, False, true_best
+    )
+    prior = learn(parameter, sampler, confidence_computer)
+    compute_confidence(prior, parameter.n_mc_samples, candidates,
+                       candidate_filter, True, true_best)
 
 
 # All combinatorial possibilities to choose m fron {0, ..., N_ARMS-1}.

@@ -5,6 +5,7 @@ BETA = .5
 N_STEPS = 500
 N_ARMS = 5
 N_MC_SAMPLES = 10000000
+CONFIDENCE_LEVEL = .9
 SEED = 12
 
 
@@ -23,14 +24,13 @@ def select_arm_ttts(prior):
     return selected_arm
 
 
-def main():
-    true_theta = np.array([.1, .2, .3, .4, .5])
-    prior = utils.learn(SEED, N_ARMS, N_STEPS, select_arm_ttts, true_theta)
-    candidates = range(N_ARMS)
-    true_best = utils.select_best_arm_from_theta(true_theta)
-    utils.compute_confidence(prior, N_MC_SAMPLES, candidates,
-                             utils.filter_samples_for_arm, true_best)
-
+def run_t1_ttts(parameter=None):
+    if parameter is None:
+        true_theta = np.array([.1, .2, .3, .4, .5])
+        # Top 1 sampling implies m = 1.
+        parameter = utils.Parameter(N_STEPS, N_ARMS, N_MC_SAMPLES, 1,
+                                    CONFIDENCE_LEVEL, SEED, true_theta)
+    utils.run_experiment(parameter, select_arm_ttts)
 
 if __name__ == "__main__":
-    main()
+    run_t1_ttts()

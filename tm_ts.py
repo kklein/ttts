@@ -7,6 +7,7 @@ N_ARMS = 5
 N_MC_SAMPLES = 10000000
 SEED = 14
 M = 3
+CONFIDENCE_LEVEL = .9
 
 
 def select_arms_ts(prior):
@@ -20,30 +21,28 @@ def select_arms_tsus(prior, m):
     return np.random.choice(top_m_arms)
 
 
-def run_tm_ts():
-    true_theta = np.array([.1, .2, .3, .4, .5])
-    prior = utils.learn(SEED, N_ARMS, N_STEPS, select_arms_ts, true_theta)
-    candidates = utils.get_topm_candidates(N_ARMS, M)
-    true_best = utils.select_best_arms_from_theta(true_theta, M)
-    utils.compute_confidence(prior, N_MC_SAMPLES, candidates,
-                             utils.filter_samples_for_arms_vect, true_best)
+def run_tm_ts(parameter=None):
+    if parameter is None:
+        true_theta = np.array([.1, .2, .3, .4, .5])
+        parameter = utils.Parameter(N_STEPS, N_ARMS, N_MC_SAMPLES, M,
+                                    CONFIDENCE_LEVEL, SEED, true_theta)
+    utils.run_experiment(parameter, select_arms_ts)
 
 
-def run_tm_tsus():
-    true_theta = np.array([.1, .2, .3, .4, .5])
-    sampler = lambda prior: select_arms_tsus(prior, M)
-    prior = utils.learn(SEED, N_ARMS, N_STEPS, sampler, true_theta)
-    candidates = utils.get_topm_candidates(N_ARMS, M)
-    true_best = utils.select_best_arms_from_theta(true_theta, M)
-    utils.compute_confidence(prior, N_MC_SAMPLES, candidates,
-                             utils.filter_samples_for_arms_vect, true_best)
+def run_tm_tsus(parameter=None):
+    if parameter is None:
+        true_theta = np.array([.1, .2, .3, .4, .5])
+        parameter = utils.Parameter(N_STEPS, N_ARMS, N_MC_SAMPLES, M,
+                                    CONFIDENCE_LEVEL, SEED, true_theta)
+    sampler = lambda prior: select_arms_tsus(prior, parameter.m)
+    utils.run_experiment(parameter, sampler)
 
 
 def main():
     print("Running thompson sampling.")
     run_tm_ts()
     print("Running thompson sampling uniform sampling.")
-    # run_tm_tsus()
+    run_tm_tsus()
 
 
 if __name__ == "__main__":
