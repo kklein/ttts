@@ -2,7 +2,8 @@ import numpy as np
 import utils
 
 BETA = .5
-N_STEPS = 250
+TITLE='tm_ttts'
+N_STEPS = 50
 N_ARMS = 5
 N_MC_SAMPLES = 10000000
 SEED = 14
@@ -24,7 +25,7 @@ def select_arms_ttts(prior, m):
 def run_tm_ttts(parameter=None):
     if parameter is None:
         true_theta = np.array([.1, .2, .3, .4, .5])
-        parameter = utils.Parameter(N_STEPS, N_ARMS, N_MC_SAMPLES, M,
+        parameter = utils.Parameter(TITLE, N_STEPS, N_ARMS, N_MC_SAMPLES, M,
                                     CONFIDENCE_LEVEL, SEED, true_theta)
     sampler = lambda prior: select_arms_ttts(prior, parameter.m)
     utils.run_experiment(parameter, sampler)

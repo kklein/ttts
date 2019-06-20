@@ -2,6 +2,7 @@ import numpy as np
 import utils
 
 BETA = .5
+TITLE = 't1_ttts'
 N_STEPS = 500
 N_ARMS = 5
 N_MC_SAMPLES = 10000000
@@ -28,7 +29,7 @@ def run_t1_ttts(parameter=None):
     if parameter is None:
         true_theta = np.array([.1, .2, .3, .4, .5])
         # Top 1 sampling implies m = 1.
-        parameter = utils.Parameter(N_STEPS, N_ARMS, N_MC_SAMPLES, 1,
+        parameter = utils.Parameter(TITLE, N_STEPS, N_ARMS, N_MC_SAMPLES, 1,
                                     CONFIDENCE_LEVEL, SEED, true_theta)
     utils.run_experiment(parameter, select_arm_ttts)
 

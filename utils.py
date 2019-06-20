@@ -1,11 +1,13 @@
+import csv
 import itertools
 import numpy as np
 import pymc3 as pm
 
 
 class Parameter():
-    def __init__(self, n_steps, n_arms, n_mc_samples, m, confidence_level,
-                 seed, true_theta=None):
+    def __init__(self, title, n_steps, n_arms, n_mc_samples, m,
+                 confidence_level, seed, true_theta=None):
+        self.title = title
         self.n_steps = n_steps
         self.n_arms = n_arms
         self.m = m
@@ -61,12 +63,12 @@ def learn(parameter, sampler, confidence_computer):
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
-        if ((step_index % 10 == 0) and
-                confidence_computer(prior) >= parameter.confidence_level):
+        if (step_index > 0 and (step_index % 25 == 0) and
+                confidence_computer(prior)[0] >= parameter.confidence_level):
             break
 
     print_sampling_results(prior, parameter.true_theta, arm_selection_counts)
-    return prior
+    return prior, step_index
 
 
 # Compute confidence via Monte Carlo integration.
@@ -95,7 +97,7 @@ def compute_confidence(prior, n_mc_samples, candidates, candidate_filter,
             max_confidence = confidence
     if print_results:
         print_confidence_results(best_candidate, max_confidence, true_best)
-    return max_confidence
+    return max_confidence, best_candidate
 
 
 def run_experiment(parameter, sampler):
@@ -112,10 +114,13 @@ def run_experiment(parameter, sampler):
         prior, parameter.n_mc_samples, candidates,
         candidate_filter, False, true_best
     )
-    prior = learn(parameter, sampler, confidence_computer)
-    compute_confidence(prior, parameter.n_mc_samples, candidates,
-                       candidate_filter, True, true_best)
-
+    prior, step_index = learn(parameter, sampler, confidence_computer)
+    max_confidence, best_candidate = compute_confidence(
+        prior, parameter.n_mc_samples, candidates, candidate_filter, True,
+        true_best)
+    theta = get_means_from_beta_distribution(prior)
+    log_result(parameter, theta, true_best, best_candidate, max_confidence,
+               step_index)
 
 # All combinatorial possibilities to choose m fron {0, ..., N_ARMS-1}.
 def get_topm_candidates(n_arms, m):
@@ -132,6 +137,10 @@ def select_best_arms_from_theta(theta, m):
 
 def are_set_equal(array_a, array_b):
     return np.sum(np.in1d(array_a, array_b)) == len(array_a)
+
+
+def get_means_from_beta_distribution(prior):
+    return prior.alpha / (prior.alpha + prior.beta)
 
 
 def filter_samples_for_arm(samples, arm_index):
@@ -161,9 +170,30 @@ def filter_samples_for_arms_vect(samples, arm_combination):
     return samples[arm_filter > 0, :]
 
 
+def log_result(parameter, theta, true_best, best_candidate, confidence,
+               step_index):
+    with open('log.csv', mode='a+') as log_file:
+        log_writer = csv.writer(log_file, delimiter='|', quotechar='',
+                                quoting=csv.QUOTE_NONE)
+        log_writer.writerow([
+            parameter.title,
+            parameter.true_theta,
+            theta,
+            parameter.m,
+            true_best,
+            best_candidate,
+            parameter.confidence_level,
+            confidence,
+            parameter.n_steps,
+            step_index + 1,
+            parameter.seed,
+            parameter.n_mc_samples
+            ])
+
+
 def print_sampling_results(prior, true_theta, arm_selection_counts):
     print(f"true theta: {true_theta}")
-    print(f"Theta: {prior.alpha / (prior.alpha + prior.beta)}")
+    print(f"Theta: {get_means_from_beta_distribution(prior)}")
     print(f"Arm selections: {arm_selection_counts}")
     print(f"#successes: {np.sum(prior.alpha) - prior.n_arms}")
     print(f"#failures: {np.sum(prior.beta) - prior.n_arms}")
