@@ -6,13 +6,14 @@ import pymc3 as pm
 
 class Parameter():
     def __init__(self, title, n_steps, n_arms, n_mc_samples, m,
-                 confidence_level, seed, true_theta=None):
+                 confidence_level, control_interval, seed, true_theta=None):
         self.title = title
         self.n_steps = n_steps
         self.n_arms = n_arms
         self.m = m
         self.n_mc_samples = n_mc_samples
         self.confidence_level = confidence_level
+        self.control_interval = control_interval
         self.seed = seed
         # Draw true theta.
         if true_theta is None:
@@ -63,8 +64,8 @@ def learn(parameter, sampler, confidence_computer):
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
-        if (step_index > 0 and (step_index % 10 == 0) and
-                confidence_computer(prior)[0] >= parameter.confidence_level):
+        if is_ready_to_stop(step_index, prior, parameter.confidence_level,
+                            parameter.control_interval, confidence_computer):
             break
 
     print_sampling_results(prior, parameter.true_theta, arm_selection_counts)
@@ -121,6 +122,15 @@ def run_experiment(parameter, sampler):
     theta = get_means_from_beta_distribution(prior)
     log_result(parameter, theta, true_best, best_candidate, max_confidence,
                step_index)
+
+
+def is_ready_to_stop(step_index, prior, confidence_level, control_interval,
+                     confidence_computer):
+    if control_interval == -1:
+        return False
+    return (step_index > 0 and
+            (step_index % control_interval == 0) and
+            confidence_computer(prior)[0] >= confidence_level)
 
 # All combinatorial possibilities to choose m fron {0, ..., N_ARMS-1}.
 def get_topm_candidates(n_arms, m):
