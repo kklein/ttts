@@ -96,7 +96,7 @@ def run_t1_ttts(parameter=None):
 
 
 if __name__ == "__main__":
-    seed = sys.argv[1]
+    seed = int(sys.argv[1])
     true_theta = np.array([.1, .2, .3, .4, .5])
     confidence_levels = [.7, .8, .9, .95, .99]
 
