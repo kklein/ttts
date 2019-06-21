@@ -182,7 +182,7 @@ def filter_samples_for_arms_vect(samples, arm_combination):
 
 def log_result(parameter, theta, true_best, best_candidate, confidence,
                step_index):
-    with open('log.csv', mode='a+') as log_file:
+    with open('log_steps.csv', mode='a+') as log_file:
         log_writer = csv.writer(log_file, delimiter='|', quotechar='',
                                 quoting=csv.QUOTE_NONE)
         log_writer.writerow([
