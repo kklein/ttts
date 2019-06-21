@@ -63,7 +63,7 @@ def learn(parameter, sampler, confidence_computer):
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
-        if (step_index > 0 and (step_index % 100 == 0) and
+        if (step_index > 0 and (step_index % 10 == 0) and
                 confidence_computer(prior)[0] >= parameter.confidence_level):
             break
 
