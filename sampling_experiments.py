@@ -6,7 +6,7 @@ BETA = .5
 N_STEPS = 2000
 TITLE = 'title'
 N_ARMS = 5
-N_MC_SAMPLES = 10000000
+N_MC_SAMPLES = 100000000
 SEED = 14
 M = 3
 CONFIDENCE_LEVEL = .9
@@ -118,5 +118,5 @@ if __name__ == "__main__":
         for n_steps in step_levels:
             parameter = utils.Parameter(
                 method['title'], n_steps, N_ARMS, N_MC_SAMPLES, M,
-                CONFIDENCE_LEVEL, -1, SEED, true_theta)
+                CONFIDENCE_LEVEL, -1, seed, true_theta)
             method['run_method'](parameter)
