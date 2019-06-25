@@ -107,10 +107,10 @@ if __name__ == "__main__":
 
 
     methods = [
-        {'title': 'tm_uniform', 'run_method': run_tm_uniform},
-        {'title': 'tm_ts', 'run_method': run_tm_ts},
+        {'title': 'tm_ttts', 'run_method': run_tm_ttts},
         {'title': 'tm_tsus', 'run_method': run_tm_tsus},
-        {'title': 'tm_ttts', 'run_method': run_tm_ttts}
+        {'title': 'tm_uniform', 'run_method': run_tm_uniform},
+        {'title': 'tm_ts', 'run_method': run_tm_ts}
     ]
 
     for method in methods:
