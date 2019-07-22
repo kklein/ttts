@@ -5,22 +5,15 @@ import utils
 BETA = .5
 N_STEPS = 2000
 TITLE = 'title'
-N_ARMS = 5
-N_MC_SAMPLES = 100000000
+N_MC_SAMPLES = 100000
 SEED = 14
-M = 3
-CONFIDENCE_LEVEL = .9
-CONTROL_INTERVAL = -1
+M = 4
 
 def select_arms_uniform(prior):
     return np.random.choice(range(prior.n_arms))
 
 
-def run_tm_uniform(parameter=None):
-    if parameter is None:
-        true_theta = np.array([.1, .2, .3, .4, .5])
-        parameter = utils.Parameter(TITLE, N_STEPS, N_ARMS, N_MC_SAMPLES, M,
-                                    CONFIDENCE_LEVEL, -1, SEED, true_theta)
+def run_tm_uniform(parameter):
     utils.run_experiment(parameter, select_arms_uniform)
 
 
@@ -35,11 +28,7 @@ def select_arms_ttts(prior, m):
     return np.random.choice(edge_arms)
 
 
-def run_tm_ttts(parameter=None):
-    if parameter is None:
-        true_theta = np.array([.1, .2, .3, .4, .5])
-        parameter = utils.Parameter(TITLE, N_STEPS, N_ARMS, N_MC_SAMPLES, M,
-                                    CONFIDENCE_LEVEL, -1, SEED, true_theta)
+def run_tm_ttts(parameter):
     sampler = lambda prior: select_arms_ttts(prior, parameter.m)
     utils.run_experiment(parameter, sampler)
 
@@ -55,19 +44,11 @@ def select_arms_tsus(prior, m):
     return np.random.choice(top_m_arms)
 
 
-def run_tm_ts(parameter=None):
-    if parameter is None:
-        true_theta = np.array([.1, .2, .3, .4, .5])
-        parameter = utils.Parameter(N_STEPS, N_ARMS, N_MC_SAMPLES, M,
-                                    CONFIDENCE_LEVEL, -1, SEED, true_theta)
+def run_tm_ts(parameter):
     utils.run_experiment(parameter, select_arms_ts)
 
 
-def run_tm_tsus(parameter=None):
-    if parameter is None:
-        true_theta = np.array([.1, .2, .3, .4, .5])
-        parameter = utils.Parameter(TITLE, N_STEPS, N_ARMS, N_MC_SAMPLES, M,
-                                    CONFIDENCE_LEVEL, -1, SEED, true_theta)
+def run_tm_tsus(parameter):
     sampler = lambda prior: select_arms_tsus(prior, parameter.m)
     utils.run_experiment(parameter, sampler)
 
@@ -87,24 +68,17 @@ def select_arm_ttts(prior):
     return selected_arm
 
 
-def run_t1_ttts(parameter=None):
-    if parameter is None:
-        true_theta = np.array([.1, .2, .3, .4, .5])
-        # Top 1 sampling implies m = 1.
-        parameter = utils.Parameter(TITLE, N_STEPS, N_ARMS, N_MC_SAMPLES, 1,
-                                    CONFIDENCE_LEVEL, -1, SEED, true_theta)
+def run_t1_ttts(parameter):
     utils.run_experiment(parameter, select_arm_ttts)
 
 
 if __name__ == "__main__":
     seed = int(sys.argv[1])
-    true_theta = np.array([.1, .2, .3, .4, .5])
-    # confidence_levels = [.7, .8, .9, .95, .99]
+    true_theta = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
+    n_arms = len(true_theta)
+    n_steps = 1000
     confidence_level = 1
-    control_interval = -1
-
-    step_levels = range(100, 2100, 100)
-
+    control_interval = 100
 
     methods = [
         {'title': 'tm_ttts', 'run_method': run_tm_ttts},
@@ -114,9 +88,8 @@ if __name__ == "__main__":
     ]
 
     for method in methods:
-        # for confidence_level in confidence_levels:
-        for n_steps in step_levels:
-            parameter = utils.Parameter(
-                method['title'], n_steps, N_ARMS, N_MC_SAMPLES, M,
-                CONFIDENCE_LEVEL, -1, seed, true_theta)
-            method['run_method'](parameter)
+        parameter = utils.Parameter(
+            method['title'], n_steps, n_arms, N_MC_SAMPLES, M,
+            confidence_level, control_interval, seed, true_theta)
+        method['run_method'](parameter)
+        print(f"Finished method {method['title']}")
