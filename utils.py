@@ -34,8 +34,10 @@ class Prior():
         theta = theta.reshape((1, self.n_arms))
         return self.prior.logp(theta).eval()
 
-    def draw(self):
-        return self.prior.random()
+    def draw(self, n_samples=None):
+        if n_samples is None:
+            return self.prior.random()
+        return self.prior.random(size=n_samples)
 
     def update(self, arm_index, reward):
         self.prior.alpha[arm_index] += reward
@@ -50,7 +52,7 @@ class Prior():
         return self.prior.beta
 
 
-def learn(parameter, sampler, confidence_computer):
+def learn(parameter, sampler, confidence_computer, logger):
     np.random.seed(parameter.seed)
     # Define priors per arm.
     prior = Prior(parameter.n_arms)
@@ -64,12 +66,17 @@ def learn(parameter, sampler, confidence_computer):
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
-        if is_ready_to_stop(step_index, prior, parameter.confidence_level,
-                            parameter.control_interval, confidence_computer):
-            break
+        if step_index % parameter.control_interval == 0:
+            confidence, candidate = confidence_computer(prior)
+            theta = get_means_from_beta_distribution(prior)
+            logger(confidence, candidate, step_index, theta)
 
-    print_sampling_results(prior, parameter.true_theta, arm_selection_counts)
-    return prior, step_index
+            if confidence > parameter.confidence_level:
+                break
+
+    arm_selections = arm_selection_counts / step_index
+    # print_sampling_results(prior, parameter.true_theta, arm_selections)
+    return prior, step_index, arm_selections
 
 
 # Compute confidence via Monte Carlo integration.
@@ -101,6 +108,36 @@ def compute_confidence(prior, n_mc_samples, candidates, candidate_filter,
     return max_confidence, best_candidate
 
 
+def compute_confidence_direct(prior, n_samples, candidates, candidate_filter,
+                              print_results, true_best):
+
+    max_confidence = -100000
+    best_candidate = -1
+
+    candidate_counts = np.zeros(len(candidates))
+
+    samples = prior.draw(n_samples)
+
+    candidate_index = 0
+    for candidate in candidates:
+
+        filtered_samples = candidate_filter(samples, candidate)
+        candidate_counts[candidate_index] = filtered_samples.shape[0]
+        candidate_index += 1
+
+    assert n_samples == np.sum(candidate_counts)
+
+    # Determine 'best' candidate.
+    best_candidate_index = np.argmax(candidate_counts)
+    best_candidate = candidates[best_candidate_index]
+    max_confidence = candidate_counts[best_candidate_index] / n_samples
+
+    if print_results:
+        print_confidence_results(best_candidate, max_confidence, true_best)
+
+    return max_confidence, best_candidate
+
+
 def run_experiment(parameter, sampler):
     if parameter.m == 1:
         candidate_filter = filter_samples_for_arm
@@ -111,17 +148,22 @@ def run_experiment(parameter, sampler):
         candidates = get_topm_candidates(parameter.n_arms, parameter.m)
         true_best = select_best_arms_from_theta(parameter.true_theta,
                                                 parameter.m)
-    confidence_computer = lambda prior: compute_confidence(
+    confidence_computer = lambda prior: compute_confidence_direct(
         prior, parameter.n_mc_samples, candidates,
         candidate_filter, False, true_best
     )
-    prior, step_index = learn(parameter, sampler, confidence_computer)
-    max_confidence, best_candidate = compute_confidence(
+    logger = lambda confidence, best_candidate, step_index, theta: log_result(
+        parameter, theta, true_best, best_candidate, confidence, step_index
+    )
+    prior, step_index, arm_selections= learn(
+        parameter, sampler, confidence_computer, logger)
+    max_confidence, best_candidate = compute_confidence_direct(
         prior, parameter.n_mc_samples, candidates, candidate_filter, True,
         true_best)
     theta = get_means_from_beta_distribution(prior)
     log_result(parameter, theta, true_best, best_candidate, max_confidence,
                step_index)
+    # log_arm_selections(parameter, arm_selections)
 
 
 def is_ready_to_stop(step_index, prior, confidence_level, control_interval,
@@ -131,6 +173,7 @@ def is_ready_to_stop(step_index, prior, confidence_level, control_interval,
     return (step_index > 0 and
             (step_index % control_interval == 0) and
             confidence_computer(prior)[0] >= confidence_level)
+
 
 # All combinatorial possibilities to choose m fron {0, ..., N_ARMS-1}.
 def get_topm_candidates(n_arms, m):
@@ -180,11 +223,24 @@ def filter_samples_for_arms_vect(samples, arm_combination):
     return samples[arm_filter > 0, :]
 
 
+def log_arm_selections(parameter, arm_selections):
+    with open('arm_selections.csv', mode='a+') as log_file:
+        log_writer = csv.writer(log_file, delimiter='|', quotechar='',
+                                quoting=csv.QUOTE_NONE, escapechar='\\')
+        log_writer.writerow([
+            parameter.title,
+            parameter.true_theta,
+            parameter.m,
+            arm_selections
+            ])
+
+
 def log_result(parameter, theta, true_best, best_candidate, confidence,
                step_index):
-    with open('log_steps.csv', mode='a+') as log_file:
+    np.set_printoptions(linewidth=np.inf)
+    with open('log_steps_2.csv', mode='a+') as log_file:
         log_writer = csv.writer(log_file, delimiter='|', quotechar='',
-                                quoting=csv.QUOTE_NONE)
+                                quoting=csv.QUOTE_NONE, escapechar='\\')
         log_writer.writerow([
             parameter.title,
             parameter.true_theta,
@@ -194,17 +250,17 @@ def log_result(parameter, theta, true_best, best_candidate, confidence,
             best_candidate,
             parameter.confidence_level,
             confidence,
-            parameter.n_steps,
+            # parameter.n_steps,
             step_index + 1,
             parameter.seed,
             parameter.n_mc_samples
             ])
 
 
-def print_sampling_results(prior, true_theta, arm_selection_counts):
+def print_sampling_results(prior, true_theta, arm_selections):
     print(f"true theta: {true_theta}")
     print(f"Theta: {get_means_from_beta_distribution(prior)}")
-    print(f"Arm selections: {arm_selection_counts}")
+    print(f"Arm selections: {arm_selections}")
     print(f"#successes: {np.sum(prior.alpha) - prior.n_arms}")
     print(f"#failures: {np.sum(prior.beta) - prior.n_arms}")
 
