@@ -3,10 +3,8 @@ import numpy as np
 import utils
 
 BETA = .5
-N_STEPS = 2000
 TITLE = 'title'
-N_MC_SAMPLES = 100000
-SEED = 14
+N_MC_SAMPLES = 1000
 M = 4
 
 def select_arms_uniform(prior):
@@ -76,15 +74,15 @@ if __name__ == "__main__":
     seed = int(sys.argv[1])
     true_theta = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
     n_arms = len(true_theta)
-    n_steps = 1000
+    n_steps = 1700
     confidence_level = 1
-    control_interval = 100
+    control_interval = 2000
 
     methods = [
         {'title': 'tm_ttts', 'run_method': run_tm_ttts},
-        {'title': 'tm_tsus', 'run_method': run_tm_tsus},
-        {'title': 'tm_uniform', 'run_method': run_tm_uniform},
-        {'title': 'tm_ts', 'run_method': run_tm_ts}
+        #{'title': 'tm_tsus', 'run_method': run_tm_tsus},
+        #{'title': 'tm_uniform', 'run_method': run_tm_uniform},
+        #{'title': 'tm_ts', 'run_method': run_tm_ts}
     ]
 
     for method in methods:
