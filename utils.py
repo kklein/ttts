@@ -66,7 +66,7 @@ def learn(parameter, sampler, confidence_computer, logger):
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
-        if step_index % parameter.control_interval == 0:
+        if step_index > 0 and step_index % parameter.control_interval == 0:
             confidence, candidate = confidence_computer(prior)
             theta = get_means_from_beta_distribution(prior)
             logger(confidence, candidate, step_index, theta)
@@ -155,7 +155,7 @@ def run_experiment(parameter, sampler):
     logger = lambda confidence, best_candidate, step_index, theta: log_result(
         parameter, theta, true_best, best_candidate, confidence, step_index
     )
-    prior, step_index, arm_selections= learn(
+    prior, step_index, arm_selections = learn(
         parameter, sampler, confidence_computer, logger)
     max_confidence, best_candidate = compute_confidence_direct(
         prior, parameter.n_mc_samples, candidates, candidate_filter, True,
@@ -163,7 +163,7 @@ def run_experiment(parameter, sampler):
     theta = get_means_from_beta_distribution(prior)
     log_result(parameter, theta, true_best, best_candidate, max_confidence,
                step_index)
-    # log_arm_selections(parameter, arm_selections)
+    log_arm_selections(parameter, theta, arm_selections)
 
 
 def is_ready_to_stop(step_index, prior, confidence_level, control_interval,
@@ -223,13 +223,14 @@ def filter_samples_for_arms_vect(samples, arm_combination):
     return samples[arm_filter > 0, :]
 
 
-def log_arm_selections(parameter, arm_selections):
-    with open('arm_selections.csv', mode='a+') as log_file:
+def log_arm_selections(parameter, theta, arm_selections):
+    with open('arm_selections2.csv', mode='a+') as log_file:
         log_writer = csv.writer(log_file, delimiter='|', quotechar='',
                                 quoting=csv.QUOTE_NONE, escapechar='\\')
         log_writer.writerow([
             parameter.title,
             parameter.true_theta,
+            theta,
             parameter.m,
             arm_selections
             ])
