@@ -4,23 +4,9 @@ import pandas as pd
 import seaborn as sns
 import utils as utils
 
-# TODO: Read true mean and m from log.
-means_true = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
-m = 4
-df = pd.read_csv('arms.csv', sep='|', header=None)
-empirical_means = []
-frequencies = []
-
-for cell in df[2]:
-    empirical_means.append(np.fromstring(cell[1: -1], sep=' '))
-
-for cell in df[4]:
-    frequencies.append(np.fromstring(cell[1: -1], sep=' '))
-
-tuples = zip(empirical_means, frequencies)
-
 def kl_divergence(x, theta):
-    return np.log(theta / x) * theta + np.log((1 - theta) / (1 - x)) * (1 - theta)
+    return (np.log(theta / x) * theta
+            + np.log((1 - theta) / (1 - x)) * (1 - theta))
 
 def compute_coefficient(x, theta_i, theta_j, psi_i, psi_j):
     return psi_i * kl_divergence(x, theta_i) + psi_j * kl_divergence(x, theta_j)
@@ -28,10 +14,15 @@ def compute_coefficient(x, theta_i, theta_j, psi_i, psi_j):
 def analytical_min(theta_i, theta_j, psi_i, psi_j):
     return (psi_i * theta_i + psi_j * theta_j) / (psi_i + psi_j)
 
+# Note that this method distinguished top and not-top arms based on empirical
+# means. Hence top_indeces will not necessarily equal S*, based on true means.
 def compute_cross_coefficients(means, frequencies):
     top_indeces = utils.select_best_arms_from_theta(means, m)
     not_top_indeces = [i for i in range(len(means)) if i not in top_indeces]
     coefficients = {}
+
+    # Those are the 'true cross-coefficients': between optimal and sub-optimal
+    # sets.
     for j in top_indeces:
         psi_j = frequencies[j]
         theta_j = means[j]
@@ -42,35 +33,51 @@ def compute_cross_coefficients(means, frequencies):
             coefficients[(j, i)] = compute_coefficient(
                 x_hat, theta_i, theta_j, psi_i, psi_j)
 
+    # Those are unintended cross-coefficients, investigated for the sake of
+    # curiosity: within optimal arms.
+    for top_index_index in range(len(top_indeces) - 1):
+        j1 = top_indeces[top_index_index]
+        psi_j1 = frequencies[j1]
+        theta_j1 = means[j1]
+        for top_index_index2 in range(top_index_index + 1, len(top_indeces)):
+            j2 = top_indeces[top_index_index2]
+            psi_j2 = frequencies[j2]
+            theta_j2 = means[j2]
+            x_hat = analytical_min(theta_j1, theta_j2, psi_j1, psi_j2)
+            coefficients[(j1, j2)] = compute_coefficient(
+                x_hat, theta_j1, theta_j2, psi_j1, psi_j2)
+
+    # Those are unintended cross-coefficients, investigated for the sake of
+    # curiosity: within suboptimal arms.
+    for not_top_index_index in range(len(not_top_indeces) - 1):
+        i1 = not_top_indeces[not_top_index_index]
+        psi_i1 = frequencies[i1]
+        theta_i1 = means[i1]
+        for not_top_index_index2 in range(
+                not_top_index_index + 1, len(not_top_indeces)):
+            i2 = not_top_indeces[not_top_index_index2]
+            psi_i2 = frequencies[i2]
+            theta_i2 = means[i2]
+            x_hat = analytical_min(theta_i1, theta_i2, psi_i1, psi_i2)
+            coefficients[(i1, i2)] = compute_coefficient(
+                x_hat, theta_i1, theta_i2, psi_i1, psi_i2)
+
     return coefficients
 
-def compute_coefficients(means, fequencies):
-    top_indeces = utils.select_best_arms_from_theta(means, m)
-    not_top_indeces = [i for i in range(len(means)) if i not in top_indeces]
-    coefficients = np.zeros(len(means))
-    for i in not_top_indeces:
-        psi_i = frequencies[i]
-        theta_i = means[i]
-        min = 100000
-        for j in top_indeces:
-            psi_j = frequencies[j]
-            theta_j = means[j]
-            x_hat = analytical_min(theta_i, theta_j, psi_i, psi_j)
-            coefficient = compute_coefficient(x_hat, theta_i, theta_j, psi_i, psi_j)
+# TODO: Read true mean and m from log.
+means_true = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+m = 4
+df = pd.read_csv('logs/arms_2000.csv', sep='|', header=None)
+empirical_means = []
+frequencies = []
 
-            if coefficient < min:
-                min = coefficient
+for cell in df[2]:
+    empirical_means.append(np.fromstring(cell[1: -1], sep=' '))
 
-        coefficients[i] = min
-    i = 2
-    psi_i = frequencies[i]
-    theta_i = means[i]
-    for j in top_indeces:
-        psi_j = frequencies[j]
-        theta_j = means[j]
-        x_hat = analytical_min(theta_i, theta_j, psi_i, psi_j)
-        coefficients[j] = compute_coefficient(x_hat, theta_i, theta_j, psi_i, psi_j)
-    return coefficients
+for cell in df[4]:
+    frequencies.append(np.fromstring(cell[1: -1], sep=' '))
+
+tuples = zip(empirical_means, frequencies)
 
 cross_df = pd.DataFrame()
 df_ind = pd.DataFrame()
@@ -97,9 +104,14 @@ fig, ax = plt.subplots(3, 2)
 sns.barplot(x='arm_index', y='frequencies', data=df_ind, ax=ax[0, 1])
 sns.barplot(x='arm_index', y='means_true', data=df_ground, ax=ax[1, 0])
 sns.boxplot(x='arm_index', y='means_estimated', data=df_ind, ax=ax[1, 1])
-sns.boxplot(x='cross_keys', y='cross_coefficients_true', data=cross_df, ax=ax[2, 0])
-sns.boxplot(x='cross_keys', y='cross_coefficients_estimated', data=cross_df, ax=ax[2, 1])
+sns.boxplot(x='cross_keys', y='cross_coefficients_true', data=cross_df,
+            ax=ax[2, 0])
+sns.boxplot(x='cross_keys', y='cross_coefficients_estimated', data=cross_df,
+            ax=ax[2, 1])
 
-
-fig.suptitle("Coefficients on the lhs are computed with the true means. \n Coefficients on the rhs are computed with the relative empirical means. (see 2nd row)\n The coefficients in 4th row corresponds to Johannes' suggestion, calcuting all cross terms. \n The experiment has been repeated 100 times with 1700 steps.")
+fig.suptitle("""Coefficients on the lhs are computed with the true means. \n
+             Coefficients on the rhs are computed with the relative empirical
+             means. (see 2nd row)\n The coefficients in the 3rd row correspond
+             to Johannes' suggestion, calcuting all cross terms. \n The
+             experiment has been repeated 148 times with 2000 steps.""")
 plt.show()
