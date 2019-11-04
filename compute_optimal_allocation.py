@@ -78,15 +78,14 @@ def main():
     # Produce plots per (theta, m) pair in a row.
     n_runs = len(run_parameters)
     col_titles = ['unconstrained', 'constrained', 'zoomed constrained']
-    row_titles = ['theta_' + str(i) for i in range(1, n_runs + 1)]
-    # row_titles = ["1", "2"]
+    row_titles = ['theta^' + str(i) for i in range(1, n_runs + 1)]
     _, ax_allocation = plt.subplots(n_runs, len(col_titles), tight_layout=True)
     _, ax_coefficients = plt.subplots(n_runs, n_runs, tight_layout=True)
 
     for ax, title in zip(ax_allocation[0], col_titles):
-        ax.set_title(title, size='large')
+        ax.set_title(title, fontsize=16)
     for ax, title in zip(ax_allocation[:,0], row_titles):
-        ax.set_ylabel(r'$\{}$'.format(title), rotation=0, size='large')
+        ax.set_ylabel(r'$\{}$'.format(title), rotation=0, fontsize=18)
     for ax, title in zip(ax_coefficients[0], col_titles[:-1]):
         ax.set_title(title, size='large')
     for ax, title in zip(ax_coefficients[:,0], row_titles):
@@ -102,7 +101,7 @@ def main():
             result = least_squares(value_function, guess, loss='soft_l1',
                                    bounds=([np.nextafter(0, 1)] * n_arms,
                                            [1] * n_arms))
-            
+
             print(result.x)
             print(result.cost)
 
