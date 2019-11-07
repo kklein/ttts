@@ -78,7 +78,9 @@ def main():
 
     # Produce plots per (theta, m) pair in a row.
     n_runs = len(run_parameters)
-    col_titles = ['constrained', 'unconstrained', 'zoomed unconstrained']
+    col_titles = ['constrained', 'constrained log-scale', 'unconstrained',
+                  'unconstrained log-scale']
+    col_titles_coefficients = ['constrained', 'unconstrained']
     row_titles = ['theta^' + str(i) for i in range(1, n_runs + 1)]
     _, ax_allocation = plt.subplots(n_runs, len(col_titles), tight_layout=True)
     plt.setp(ax_allocation.flat, xlabel='arm index', ylabel=r'$\psi_l$')
@@ -98,7 +100,7 @@ def main():
                     fontsize='18',
                     ha='right',
                     va='center')
-    for ax, title in zip(ax_coefficients[0], col_titles[:-1]):
+    for ax, title in zip(ax_coefficients[0], col_titles_coefficients):
         ax.set_title(title, size='large')
     for ax, title in zip(ax_coefficients[:, 0], row_titles):
         ax.annotate(r'$\{}$'.format(title),
@@ -127,23 +129,19 @@ def main():
             print(result.cost)
 
             row_index = index
-            col_index = 0 if is_constrained else 1
-            ax_allocation[row_index, col_index].scatter(
+            col_index_allocation = 2 * is_constrained
+            col_index_coefficients = int(is_constrained)
+
+            ax_allocation[row_index, col_index_allocation].scatter(
                 range(n_arms), result.x)
+            ax_allocation[row_index, col_index_allocation + 1].set_yscale('log')
+            ax_allocation[row_index, col_index_allocation + 1].scatter(
+                range(n_arms), result.x)
+
             indices, values = compute_coefficients(
                 result.x, execution_parameter)
-            ax_coefficients[row_index, col_index].scatter(
+            ax_coefficients[row_index, col_index_coefficients].scatter(
                 x=indices, y=values)
-
-            # Zoom into plot for unconstrained optimization.
-            if not execution_parameter.is_constrained:
-                print(result.x[execution_parameter.optimal_arms])
-                top_value = result.x[execution_parameter.optimal_arms[-1]] * 1.2
-                ax_allocation[row_index, col_index + 1].scatter(
-                    range(n_arms), result.x)
-                ax_allocation[row_index, col_index +
-                              1].set_ylim(bottom=0, top=top_value)
-
     plt.show()
 
 
