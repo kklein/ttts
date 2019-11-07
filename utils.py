@@ -59,6 +59,7 @@ def learn(parameter, sampler, confidence_computer, logger):
     arm_selection_counts = np.zeros(parameter.n_arms)
 
     for step_index in range(parameter.n_steps):
+        print(step_index)
         selected_arm = sampler(prior)
         # Play option/arm.
         reward = np.random.binomial(1, parameter.true_theta[selected_arm])
@@ -188,6 +189,11 @@ def select_best_arms_from_theta(theta, m):
     return theta.argsort()[-m:][::-1]
 
 
+def select_suboptimal_arms_from_theta(theta, m):
+    optimal_arms = select_best_arms_from_theta(theta, m)
+    return np.array([l for l in range(len(theta)) if l not in optimal_arms])
+
+
 def are_set_equal(array_a, array_b):
     return np.sum(np.in1d(array_a, array_b)) == len(array_a)
 
@@ -224,7 +230,7 @@ def filter_samples_for_arms_vect(samples, arm_combination):
 
 
 def log_arm_selections(parameter, theta, arm_selections):
-    with open('arm_selections2.csv', mode='a+') as log_file:
+    with open('logs/arms_argmin.csv', mode='a+') as log_file:
         log_writer = csv.writer(log_file, delimiter='|', quotechar='',
                                 quoting=csv.QUOTE_NONE, escapechar='\\')
         log_writer.writerow([
@@ -239,7 +245,7 @@ def log_arm_selections(parameter, theta, arm_selections):
 def log_result(parameter, theta, true_best, best_candidate, confidence,
                step_index):
     np.set_printoptions(linewidth=np.inf)
-    with open('log_steps_2.csv', mode='a+') as log_file:
+    with open('logs/log_steps_argmin.csv', mode='a+') as log_file:
         log_writer = csv.writer(log_file, delimiter='|', quotechar='',
                                 quoting=csv.QUOTE_NONE, escapechar='\\')
         log_writer.writerow([

@@ -52,7 +52,7 @@ def main(delta, epsilon):
 
     criterion = 1
 
-    while criterion >= epsilon:
+    while criterion >= epsilon and t < 200:
         state.sample_and_update(state.lb_index)
         state.sample_and_update(state.ub_index)
         t += 1
@@ -64,8 +64,10 @@ def main(delta, epsilon):
     n_samples = len(true_means) + 2 * t
     print(f"Took {n_samples}.")
     print(state.counts)
+    print(state.means)
+    print(state.betas)
 
 if __name__ == "__main__":
-    delta = .05
-    epsilon = 0.2
+    delta = .1
+    epsilon = 0.1
     main(delta, epsilon)

@@ -22,7 +22,14 @@ def select_arms_ttts(prior, m):
     while utils.are_set_equal(new_top_m_arms, top_m_arms):
         new_theta = prior.draw()
         new_top_m_arms = utils.select_best_arms_from_theta(new_theta, m)
-    edge_arms = np.setxor1d(top_m_arms, new_top_m_arms)
+
+    ## XOR
+    # edge_arms = np.setxor1d(top_m_arms, new_top_m_arms)
+
+    # argmin
+    edge_arms = [np.min(top_m_arms), np.min(new_top_m_arms)]
+    print(f"S1: {top_m_arms}, S2: {new_top_m_arms}, edge_arms: {edge_arms}")
+
     return np.random.choice(edge_arms)
 
 
@@ -74,7 +81,7 @@ if __name__ == "__main__":
     seed = int(sys.argv[1])
     true_theta = np.array([.1, .2, .3, .4, .5, .6, .7, .8, .9])
     n_arms = len(true_theta)
-    n_steps = 1700
+    n_steps = 1000
     confidence_level = 1
     control_interval = 2000
 
