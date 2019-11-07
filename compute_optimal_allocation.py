@@ -8,6 +8,7 @@ import utils as utils
 # In this whole script 'p' stands for the measurement plan, a.k.a. allocation
 # policy. This is a probability over the set of arms.
 
+
 class ExecutionParameter:
     def __init__(self, theta, m, is_constrained):
         self.theta = theta
@@ -77,19 +78,39 @@ def main():
 
     # Produce plots per (theta, m) pair in a row.
     n_runs = len(run_parameters)
-    col_titles = ['unconstrained', 'constrained', 'zoomed constrained']
+    col_titles = ['constrained', 'unconstrained', 'zoomed unconstrained']
     row_titles = ['theta^' + str(i) for i in range(1, n_runs + 1)]
     _, ax_allocation = plt.subplots(n_runs, len(col_titles), tight_layout=True)
+    plt.setp(ax_allocation.flat, xlabel='arm index', ylabel=r'$\psi_l$')
     _, ax_coefficients = plt.subplots(n_runs, n_runs, tight_layout=True)
-
+    plt.setp(ax_coefficients.flat, xlabel='pair indeces', ylabel='$C_{j, i}$')
+    pad = 5
     for ax, title in zip(ax_allocation[0], col_titles):
         ax.set_title(title, fontsize=16)
-    for ax, title in zip(ax_allocation[:,0], row_titles):
-        ax.set_ylabel(r'$\{}$'.format(title), rotation=0, fontsize=18)
+    for ax, title in zip(ax_allocation[:, 0], row_titles):
+        ax.annotate(r'$\{}$'.format(title),
+                    xy=(0,
+                        0.5),
+                    xytext=(-ax.yaxis.labelpad - pad,
+                            0),
+                    xycoords=ax.yaxis.label,
+                    textcoords='offset points',
+                    fontsize='18',
+                    ha='right',
+                    va='center')
     for ax, title in zip(ax_coefficients[0], col_titles[:-1]):
         ax.set_title(title, size='large')
-    for ax, title in zip(ax_coefficients[:,0], row_titles):
-        ax.set_ylabel(r'$\{}$'.format(title), rotation=0, size='large')
+    for ax, title in zip(ax_coefficients[:, 0], row_titles):
+        ax.annotate(r'$\{}$'.format(title),
+                    xy=(0,
+                        0.5),
+                    xytext=(-ax.yaxis.labelpad - pad,
+                            0),
+                    xycoords=ax.yaxis.label,
+                    textcoords='offset points',
+                    fontsize='18',
+                    ha='right',
+                    va='center')
 
     for index, theta, m in run_parameters:
         for is_constrained in [True, False]:
@@ -109,7 +130,8 @@ def main():
             col_index = 0 if is_constrained else 1
             ax_allocation[row_index, col_index].scatter(
                 range(n_arms), result.x)
-            indices, values = compute_coefficients(result.x, execution_parameter)
+            indices, values = compute_coefficients(
+                result.x, execution_parameter)
             ax_coefficients[row_index, col_index].scatter(
                 x=indices, y=values)
 
@@ -119,13 +141,14 @@ def main():
                 top_value = result.x[execution_parameter.optimal_arms[-1]] * 1.2
                 ax_allocation[row_index, col_index + 1].scatter(
                     range(n_arms), result.x)
-                ax_allocation[row_index, col_index + 1].set_ylim(bottom=0, top=top_value)
+                ax_allocation[row_index, col_index +
+                              1].set_ylim(bottom=0, top=top_value)
 
     plt.show()
 
 
 if __name__ == "__main__":
     # Enable Tex rendering for matplotlib.
-    rc('font',**{'family':'serif','serif':['Palatino']})
-    rc('text', usetex = True)
+    rc('font', **{'family': 'serif', 'serif': ['Palatino']})
+    rc('text', usetex=True)
     main()
