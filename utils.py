@@ -67,16 +67,22 @@ def learn(parameter, sampler, confidence_computer, logger):
         prior.update(selected_arm, reward)
         arm_selection_counts[selected_arm] += 1
 
+        if step_index > 0 and step_index % 250 == 0:
+            theta = get_means_from_beta_distribution(prior)
+            log_arm_selections(parameter, theta,
+                               arm_selection_counts / step_index,
+                               step_index)
+
         if step_index > 0 and step_index % parameter.control_interval == 0:
             confidence, candidate = confidence_computer(prior)
             theta = get_means_from_beta_distribution(prior)
-            logger(confidence, candidate, step_index, theta)
+            # logger(confidence, candidate, step_index, theta)
 
             if confidence > parameter.confidence_level:
                 break
 
     arm_selections = arm_selection_counts / step_index
-    # print_sampling_results(prior, parameter.true_theta, arm_selections)
+    print_sampling_results(prior, parameter.true_theta, arm_selections)
     return prior, step_index, arm_selections
 
 
@@ -162,9 +168,9 @@ def run_experiment(parameter, sampler):
         prior, parameter.n_mc_samples, candidates, candidate_filter, True,
         true_best)
     theta = get_means_from_beta_distribution(prior)
-    log_result(parameter, theta, true_best, best_candidate, max_confidence,
-               step_index)
-    log_arm_selections(parameter, theta, arm_selections)
+    # log_result(parameter, theta, true_best, best_candidate, max_confidence,
+    #            step_index)
+    log_arm_selections(parameter, theta, arm_selections, step_index)
 
 
 def is_ready_to_stop(step_index, prior, confidence_level, control_interval,
@@ -229,17 +235,18 @@ def filter_samples_for_arms_vect(samples, arm_combination):
     return samples[arm_filter > 0, :]
 
 
-def log_arm_selections(parameter, theta, arm_selections):
-    with open('logs/arms_argmin.csv', mode='a+') as log_file:
+def get_log_filename(operation, parameter):
+    return f"{operation}_{parameter.title}_{parameter.n_}.csv"
+
+
+def log_arm_selections(parameter, theta, arm_selections, step_index=None):
+    filename = 'logs/new_test.csv'
+    with open(filename, mode='a+') as log_file:
         log_writer = csv.writer(log_file, delimiter='|', quotechar='',
                                 quoting=csv.QUOTE_NONE, escapechar='\\')
-        log_writer.writerow([
-            parameter.title,
-            parameter.true_theta,
-            theta,
-            parameter.m,
-            arm_selections
-            ])
+        row = ([parameter.title, step_index] +
+               arm_selections.tolist())
+        log_writer.writerow(row)
 
 
 def log_result(parameter, theta, true_best, best_candidate, confidence,
