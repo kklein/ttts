@@ -32,36 +32,6 @@ def compute_cross_coefficients(means, frequencies):
             x_hat = analytical_min(theta_i, theta_j, psi_i, psi_j)
             coefficients[(j, i)] = compute_coefficient(
                 x_hat, theta_i, theta_j, psi_i, psi_j)
-
-    # Those are unintended cross-coefficients, investigated for the sake of
-    # curiosity: within optimal arms.
-    for top_index_index in range(len(top_indeces) - 1):
-        j1 = top_indeces[top_index_index]
-        psi_j1 = frequencies[j1]
-        theta_j1 = means[j1]
-        for top_index_index2 in range(top_index_index + 1, len(top_indeces)):
-            j2 = top_indeces[top_index_index2]
-            psi_j2 = frequencies[j2]
-            theta_j2 = means[j2]
-            x_hat = analytical_min(theta_j1, theta_j2, psi_j1, psi_j2)
-            coefficients[(j1, j2)] = compute_coefficient(
-                x_hat, theta_j1, theta_j2, psi_j1, psi_j2)
-
-    # Those are unintended cross-coefficients, investigated for the sake of
-    # curiosity: within suboptimal arms.
-    for not_top_index_index in range(len(not_top_indeces) - 1):
-        i1 = not_top_indeces[not_top_index_index]
-        psi_i1 = frequencies[i1]
-        theta_i1 = means[i1]
-        for not_top_index_index2 in range(
-                not_top_index_index + 1, len(not_top_indeces)):
-            i2 = not_top_indeces[not_top_index_index2]
-            psi_i2 = frequencies[i2]
-            theta_i2 = means[i2]
-            x_hat = analytical_min(theta_i1, theta_i2, psi_i1, psi_i2)
-            coefficients[(i1, i2)] = compute_coefficient(
-                x_hat, theta_i1, theta_i2, psi_i1, psi_i2)
-
     return coefficients
 
 # TODO: Read true mean and m from log.
