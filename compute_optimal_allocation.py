@@ -83,12 +83,14 @@ def main():
     col_titles_coefficients = ['constrained', 'unconstrained']
     row_titles = ['theta^' + str(i) for i in range(1, n_runs + 1)]
     _, ax_allocation = plt.subplots(n_runs, len(col_titles), tight_layout=True)
-    plt.setp(ax_allocation.flat, xlabel='arm index', ylabel=r'$\psi_l$')
+    for ax in ax_allocation.flat:
+        ax.set_xlabel('arm index', fontsize=16)
+        ax.set_ylabel(r'$\psi_l$', fontsize=16)
     _, ax_coefficients = plt.subplots(n_runs, n_runs, tight_layout=True)
     plt.setp(ax_coefficients.flat, xlabel='pair indeces', ylabel='$C_{j, i}$')
     pad = 5
     for ax, title in zip(ax_allocation[0], col_titles):
-        ax.set_title(title, fontsize=16)
+        ax.set_title(title, fontsize=20)
     for ax, title in zip(ax_allocation[:, 0], row_titles):
         ax.annotate(r'$\{}$'.format(title),
                     xy=(0,
@@ -97,7 +99,7 @@ def main():
                             0),
                     xycoords=ax.yaxis.label,
                     textcoords='offset points',
-                    fontsize='18',
+                    fontsize='20',
                     ha='right',
                     va='center')
     for ax, title in zip(ax_coefficients[0], col_titles_coefficients):
@@ -110,7 +112,7 @@ def main():
                             0),
                     xycoords=ax.yaxis.label,
                     textcoords='offset points',
-                    fontsize='18',
+                    fontsize='20',
                     ha='right',
                     va='center')
 

@@ -62,26 +62,38 @@ for (mean, frequency) in tuples:
     }))
 
     cross_df = cross_df.append(pd.DataFrame({
-        'cross_keys': list(cross_coefficients_estimated.keys()),
-        'cross_coefficients_estimated': list(cross_coefficients_estimated.values()),
-        'cross_coefficients_true': list(cross_coefficients_true.values())
+        'tuple': list(cross_coefficients_estimated.keys()),
+        'coefficients_estimated': list(cross_coefficients_estimated.values()),
+        'coefficients_true': list(cross_coefficients_true.values())
     }))
 
 df_ground = pd.DataFrame({'arm_index': range(9),
                           'means_true': means_true})
 
-fig, ax = plt.subplots(3, 2)
-sns.barplot(x='arm_index', y='frequencies', data=df_ind, ax=ax[0, 1])
-sns.barplot(x='arm_index', y='means_true', data=df_ground, ax=ax[1, 0])
-sns.boxplot(x='arm_index', y='means_estimated', data=df_ind, ax=ax[1, 1])
-sns.boxplot(x='cross_keys', y='cross_coefficients_true', data=cross_df,
-            ax=ax[2, 0])
-sns.boxplot(x='cross_keys', y='cross_coefficients_estimated', data=cross_df,
-            ax=ax[2, 1])
+fig, ax = plt.subplots(2, 2)
+sns.barplot(x='arm_index', y='means_true', data=df_ground, ax=ax[0, 0])
+sns.boxplot(x='arm_index', y='means_estimated', data=df_ind, ax=ax[0, 1])
+sns.boxplot(x='tuple', y='coefficients_true', data=cross_df,
+            ax=ax[1, 0])
+sns.boxplot(x='tuple', y='coefficients_estimated', data=cross_df,
+            ax=ax[1, 1])
+ax[0, 0].set_xlabel('arm index', fontsize=14)
+ax[0, 0].set_ylabel('true mean', fontsize=14)
+ax[0, 1].set_xlabel('arm index', fontsize=14)
+ax[0, 1].set_ylabel('estimated mean', fontsize=14)
+ax[1, 0].set_xlabel('arm pair', fontsize=14)
+ax[1, 0].tick_params(axis='x', labelsize=6)
+ax[1, 0].set_ylabel('true coefficient', fontsize=14)
+ax[1, 1].set_xlabel('arm pair', fontsize=14)
+ax[1, 1].tick_params(axis='x', labelsize=6)
+ax[1, 1].set_ylabel('estimated coefficient', fontsize=14)
 
-fig.suptitle("""Coefficients on the lhs are computed with the true means. \n
-             Coefficients on the rhs are computed with the relative empirical
-             means. (see 2nd row)\n The coefficients in the 3rd row correspond
-             to Johannes' suggestion, calcuting all cross terms. \n The
-             experiment has been repeated 148 times with 2000 steps.""")
+
+
+# fig.suptitle("""Coefficients on the lhs are computed with the true means. \n
+             # Coefficients on the rhs are computed with the relative empirical
+             # means. (see 2nd row)\n The coefficients in the 3rd row correspond
+             # to Johannes' suggestion, calcuting all cross terms. \n The
+             # experiment has been repeated 148 times with 2000 steps.""")
+plt.tight_layout()
 plt.show()
