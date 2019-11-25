@@ -68,7 +68,6 @@ def compute_coefficients(p, execution_parameter):
             values += [v]
     return(indices, values)
 
-
 def main():
     m1 = 4
     m2 = 4
@@ -78,9 +77,9 @@ def main():
 
     # Produce plots per (theta, m) pair in a row.
     n_runs = len(run_parameters)
-    col_titles = ['constrained', 'constrained log-scale', 'unconstrained',
-                  'unconstrained log-scale']
-    col_titles_coefficients = ['constrained', 'unconstrained']
+    col_titles = ['unconstrained', 'unconstrained log-scale', 'constrained',
+                  'constrained log-scale']
+    col_titles_coefficients = ['unconstrained', 'constrained']
     row_titles = ['theta^' + str(i) for i in range(1, n_runs + 1)]
     _, ax_allocation = plt.subplots(n_runs, len(col_titles), tight_layout=True)
     for ax in ax_allocation.flat:
@@ -117,7 +116,7 @@ def main():
                     va='center')
 
     for index, theta, m in run_parameters:
-        for is_constrained in [True, False]:
+        for is_constrained in [False, True]:
             execution_parameter = ExecutionParameter(theta, m, is_constrained)
             n_arms = len(execution_parameter.theta)
             # Use uniform allocation as guess.
